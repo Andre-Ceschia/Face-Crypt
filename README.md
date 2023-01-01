@@ -33,7 +33,7 @@ Face-Crypt uses the SHA256 hashing algorithim in accordance with the AES256 encr
 
  cd Face-Crypt
 
- python3 -m pip install requirments.txt
+ python3 -m pip install -r requirments.txt
 
  python3 Face-Crypt.py
  ```
