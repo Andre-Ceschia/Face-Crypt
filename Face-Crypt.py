@@ -249,7 +249,7 @@ def compiler_seq(params: dict):
     ])
 
     delete_command = ['rm', f'{params["name"]}.spec']    
-    move_command = ['mv', f'dist/{params["name"]}']
+    move_command = ['mv', f'dist/{params["name"]}', '.']
 
     if 'file' in comp_type:
         move_command[1] += '.exe'
