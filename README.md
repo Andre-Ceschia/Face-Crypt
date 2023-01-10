@@ -19,7 +19,7 @@ Face-Crypt uses the SHA256 hashing algorithim in accordance with the AES256 encr
     * During this step Face-Crypt utilizes the inputted password as well as the profile created by the step above to encrypt the chosen directory.
     * Next, Face-Crypt then compiles to an executable that houses the encrypted directory, facial profile, and opencv classifier
 
-3. When the user runs the executable they will be prompted for a password and then have thier identity analyzed by the neural network created earlier. If they have entered the correct password in addition to passing the identity verification then the user will be prompted with the Face-Crypt Client Side CLI where all options are shown. 
+3. When the user runs the executable they will be prompted for a password and then have thier identity analyzed by the neural network created earlier. If they have entered the correct password in addition to passing the identity verification then the user will be prompted with the Face-Crypt client side CLI where all options are shown. 
 
     * Within the client side CLI users will be able to decrypt their encrypted directory, work on the decrypted directory and then re-encrypt the updated directory, change the outpath of the decrypted directory and more.
 
