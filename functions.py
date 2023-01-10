@@ -5,9 +5,7 @@ import subprocess
 import hashlib
 from Cryptodome.Cipher import AES
 from cryptography.fernet import Fernet
-import keyring
 import base64
-import random
 import json
 
 # hiding tensorflow debugging information
@@ -182,32 +180,14 @@ def train_model(name: str):
     # saving model
     model.save(f'data/{name}/{name}.h5')
 
-def get_file_name(path: str):
-    # returns title of file without extenstion
-    if '.' not in path:
-        return path
-    else:
-        return path[:path.index('.')]
+def get_key(salt: str, password: str, pepper: str) -> bytes:
+    to_encode = salt + password + pepper
+    to_encode = to_encode.encode('latin-1')
 
-def get_file_type(path: str):
-    # returns file type
-    if '.' not in path:
-        return None
-    else:
-        return path[path.index('.') + 1:]
+    return hashlib.sha256(to_encode).digest()
 
 # for the setup file
-def encrypt(path: str, password: str = None):
-    if password is None:
-        # if no password is inputted create random aes key
-        key = ''.join([chr(random.randint(33, 126)) for i in range(32)]).encode('latin-1')
-    else:
-        # if a password is inputted hash the password with a sha256 hashing algorithim and use the output as the aes key
-        salt = 'aNdR3C3'
-        pepper = '1' * 8
-        to_encode = (salt + password + pepper).encode('latin-1')
-        key = hashlib.sha256(to_encode).digest()
-
+def encrypt_file(path: str, key: bytes, slash: str):
     # encodes the key to base64
     key_b64 = base64.b64encode(key)
 
@@ -226,27 +206,81 @@ def encrypt(path: str, password: str = None):
     encrypted_tag = fernet.encrypt(tag)
     encrypted_nonce = fernet.encrypt(nonce)
 
-    file_name = get_file_name(path)
-    file_type = get_file_type(path)
+    # getting name of file from path
+    if slash in path:
+        file_name = path.split(slash)[-1]
+    else:
+        file_name = path.split
 
-    if '\\' in file_name:
-        file_name = file_name.split('\\')[-1]
-    elif '/' in file_name:
-        file_name = file_name.split('/')[-1]
+    # returning a tuple contating the encrypteted data, tag, nonce, and file name
+    return encrypted_data.decode('latin-1'), encrypted_tag.decode('latin-1'), encrypted_nonce.decode('latin-1'), file_name
 
-    if password is None:
-        # if password is not used put the random aes key in keyring
-        keyring.set_password(file_name, 'key', key.decode('latin-1'))
+def encrypt_dir(path: str, key: bytes, slash: str):
+    # gets directory name
+    if slash in path:
+        dir_name = path.split(slash)[-1]
+    else:
+        dir_name = path
 
-    # json info to write to encrypted.json
-    json_dict = {
-        'data': encrypted_data.decode('latin-1'),
-        'tag': encrypted_tag.decode('latin-1'),
-        'nonce': encrypted_nonce.decode('latin-1'),
-        'file_name': file_name,
-        'file_type': file_type 
+    # initailziing return dictionary
+    json_info = {
+        dir_name: {}
     }
 
-    # dumps the encrypted data to a json file
-    with open(f'encrypted.json', 'w') as file:
-        json.dump(json_dict, file)
+    # for every item in the inputted path
+    for item in os.listdir(path):
+        # formatting file path
+        item_path = path + slash + item
+
+        # if item is a file encrypt the file and append the tuple to the files list in the json info dictionary
+        if os.path.isfile(item_path):
+            if 'files' not in json_info[dir_name]:
+                json_info[dir_name]['files'] = []
+
+            json_info[dir_name]['files'].append(encrypt_file(item_path, key, slash))
+
+        # if item is a direcotry recursivley call encrypt_dir and append the return value to the dirs list in the json info dictionary
+        elif os.path.isdir(item_path):
+            if 'dirs' not in json_info[dir_name]:
+                json_info[dir_name]['dirs'] = []
+
+            json_info[dir_name]['dirs'].append(encrypt_dir(item_path, key, slash))
+
+    return json_info
+
+def encrypt(path: str, key: bytes, profile: str, outpath: str = '.'):
+    # determining what slash to use when dealing with paths
+    if '\\' in path:
+        slash = '\\'
+    else:
+        slash = '/'
+
+    # if path does not exist raise exception
+    if not os.path.isdir(path) or not os.path.isdir(outpath):
+        raise Exception('Error path does not exists')
+
+    # encrypt the directory and everyting in it and return a heriachal dictionary
+    encrypted_hierarchy = encrypt_dir(path, key, slash)
+
+    # write output of the encrypt dir function to a json file 
+    with open('encrypted.json', 'w') as file:
+        json.dump(encrypted_hierarchy, file, indent=4)
+
+    # base 64 encodes key and encrypts the name of the directory
+    b64_key = base64.b64encode(key)
+    fernet = Fernet(b64_key)
+
+    encrypted_outpath = fernet.encrypt(outpath.encode('latin-1'))
+
+    name = path.split(slash)[-1]
+
+    info_out = {
+        'outpath': encrypted_outpath.decode('latin-1'),
+        'profile': profile,
+        'name': name
+    }
+
+    # write info_out to info.json
+    with open('info.json', 'w') as file:
+        json.dump(info_out, file, indent=4)
+

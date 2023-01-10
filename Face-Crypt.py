@@ -5,11 +5,12 @@ from colorama import init
 import platform
 import subprocess
 import os
-import json
+import PyInstaller.__main__
+
 from functions import create_dataset
 from functions import train_model
 from functions import encrypt
-import PyInstaller.__main__
+from functions import get_key
 
 print('Success!')
 
@@ -27,6 +28,7 @@ def art(new_lines: int = 2):
     print(''.join(['\n'] * new_lines))
 
 def clear(show_art: bool = False):
+    # clears screen and shows art if shows logo if the show_art bool is True
     commands = ['clear']
     system_name = platform.system()
 
@@ -39,6 +41,7 @@ def clear(show_art: bool = False):
         art()
 
 def get_user_input(sub_dir: str):
+    # gets user input and process it for decision making
     var = input(f'{Fore.BLUE}fcry{Fore.RED}{sub_dir}{Fore.GREEN} > ').strip()
 
     if 'set' in var.lower():
@@ -64,6 +67,7 @@ def get_user_input(sub_dir: str):
     return var
 
 def help_options():
+    # prints all commands
     print(f'\n{Fore.RED}Commands \n{Fore.GREEN}--------')
     print(f'{Fore.RED}Show options{Fore.GREEN} - Prints all available options.')
     print(f'\n{Fore.RED}Home{Fore.GREEN} - Breaks out of the selected option and returns home.')
@@ -79,6 +83,7 @@ def help_options():
     print('\n--------\n')
 
 def show_profiles():
+    # shows existing profiles
     dir_files = os.listdir('data/')
 
     print(f'\n{Fore.RED}Profiles \n{Fore.GREEN}--------')
@@ -98,15 +103,16 @@ def show_profiles():
     return
 
 def show_options():
-
+    # shows options
     print(f'\n{Fore.RED}Options \n{Fore.GREEN}-------')
 
     print(f'\n{Fore.RED}Profiler{Fore.GREEN} - Creates a facial profile of the user and saves it for future use.')
-    print(f'\n{Fore.RED}Compiler{Fore.GREEN} - Creates a directory containing an executable and an encrypted file. When the executable is run, the users identity is confirmed via facial recognition and decrypts the file.')
+    print(f'\n{Fore.RED}Compiler{Fore.GREEN} - Creates a directory containing an executable and an encrypted directory. When the executable is run, the users identity is confirmed via facial recognition and decrypts the directory.')
 
     print('\n-------\n')
 
 def profile():
+    # returns profile params and descriptions
     params = {
         'name' : '',
         'delete': 'False',
@@ -123,10 +129,11 @@ def profile():
     return (params, desc)
 
 def my_compile():
+    # returns compiler params and descriptions
     params = {
         'profile': '',
-        'password': 'None',
-        'file': '',
+        'password': '',
+        'directory': '',
         'outpath' : 'Default',
         'name': 'Face-Crypt',
         'onefile': 'False',
@@ -134,18 +141,19 @@ def my_compile():
     }
 
     desc = {
-        'Profile': f'{Fore.RED}(str){Fore.GREEN} Name of profile to be used in encrypting the file.',
-        'Password': f'{Fore.RED}(str){Fore.GREEN} Password to be used alongside facial profile. (Leave password as none if you wish to not use a password, it is strongly reccomended that you use a password.)',
-        'File': f'{Fore.RED}(str){Fore.GREEN} Absolute path of file that is to be encrypted.',
-        'Outpath': f'{Fore.RED}(str){Fore.GREEN} Absolute path of folder to output decrypted file. (Input [Default] if you would like to output the decrypted file in the same folder as the executable)',
+        'Profile': f'{Fore.RED}(str){Fore.GREEN} Name of profile to be used in encrypting the directory.',
+        'Password': f'{Fore.RED}(str){Fore.GREEN} Password to be used alongside facial profile.',
+        'Directory': f'{Fore.RED}(str){Fore.GREEN} Absolute path of directory that is to be encrypted.',
+        'Outpath': f'{Fore.RED}(str){Fore.GREEN} Absolute path of folder to output decrypted directory. (Input [Default] if you would like to output the decrypted directory in the same folder as the executable)',
         'Name': f'{Fore.RED}(str){Fore.GREEN} Name of the compiled executable or directory.',
         'Onefile': f'{Fore.RED}(bool){Fore.GREEN} True: Output single executable. False: Output a directory containing the executable alongsige multiple binaries (Recomended option)',
-        'Purge': f'{Fore.RED}(bool){Fore.GREEN} True: Purge original file from system. False: Original file remains untouched.'
+        'Purge': f'{Fore.RED}(bool){Fore.GREEN} True: Purge original directory from system. False: Original directory remains untouched.'
     }
 
     return (params, desc)
 
 def profiler_seq(params: dict):
+    # creates facial profile for user
     for key in params:
         if params[key] == '':
             print('\nError! Profiler was run with invalid input')
@@ -157,8 +165,6 @@ def profiler_seq(params: dict):
                 print('\nError! Pictures has to be an integer.')
                 return
         
-    
-
     delete_val = 'true' in params['delete'].lower()
 
     camera_connected = input('Is a webcam connected to your machine? (Y/N): ')
@@ -183,7 +189,8 @@ def profiler_seq(params: dict):
         return
 
 def compiler_seq(params: dict):
-    if params['profile'] not in os.listdir('data'):
+    # encrypts directory and compiles executable
+    if params['profile'] not in os.listdir('data') or params['profile'] == 'other':
         print(f'\nError! No profile exists with the name {Fore.RED}{params["profile"]}{Fore.GREEN}.')
         return
 
@@ -192,33 +199,26 @@ def compiler_seq(params: dict):
             print(f'\nError! Compiler was run with invalid input.')
             return
 
-    print(f'\nAttempting to encrypt {Fore.RED}{params["file"]}{Fore.GREEN} ...')
+    print(f'\nAttempting to encrypt {Fore.RED}{params["directory"]}{Fore.GREEN} ...')
 
-    if params['password'].lower() == 'none':
-        params['password'] = None
+    salt = 'aNdR3C3'
+    pepper = '1'* 8
 
-    encrypt(params['file'], params['password'])
+    # hashing key
+    key = get_key(salt, params['password'], pepper)
 
     if params['outpath'].lower() == 'default':
-        params['outpath'] = ''
+        params['outpath'] = '.'
     elif params['outpath'][-1] == '/' or params['outpath'][-1] == '\\':
+
         params['outpath'] = params['outpath'][:len(params['outpath']) - 1]
 
-    with open('encrypted.json') as file:
-        data = json.load(file)
-        data['out'] = params['outpath']
-        data['profile'] = params['profile']
+    try:
+        encrypt(params['directory'], key, params['profile'], params['outpath'])
+    except:
+        print(f'\n{Fore.RED}ERROR!{Fore.GREEN} Something went wrong!')
 
-    if params['password'] is None:
-        data['password'] = False
-
-    else:
-        data['password'] = True
-
-    with open('encrypted.json', 'w') as file:
-        json.dump(data, file)
-
-    print(f'\n{Fore.RED}{params["file"]}{Fore.GREEN} has been sucessfully encrypted.')
+    print(f'\n{Fore.RED}{params["directory"]}{Fore.GREEN} has been sucessfully encrypted.')
 
     print(f'\nCompiling to {Fore.RED}executable{Fore.GREEN} ...\n')
 
@@ -244,6 +244,7 @@ def compiler_seq(params: dict):
         '-i', 'NONE',
         '-n', f'{params["name"]}',
         '--add-data', f'encrypted.json{c}.',
+        '--add-data', f'info.json{c}.',
         '--add-data', f'{model_path}{c}.',
         '--add-data', f'haarcascade_frontalface_default.xml{c}.'
     ])
@@ -266,15 +267,18 @@ def compiler_seq(params: dict):
             file_index = i
 
     delete_command[file_index] = 'encrypted.json'
-
     subprocess.call(delete_command)
 
+    delete_command[file_index] = 'info.json'
+    subprocess.call(delete_command)
+
+    delete_command.insert(file_index, '-r')
+
     if params['purge'].lower() == 'true':
-        delete_command[file_index] = params['file']
+        delete_command[file_index + 1] = params['directory']
         subprocess.call(delete_command)
 
-    delete_command[file_index] = 'build'
-    delete_command.insert(file_index, '-r')
+    delete_command[file_index + 1] = 'build'
 
     subprocess.call(delete_command)
 
