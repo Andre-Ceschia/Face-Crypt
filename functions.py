@@ -74,7 +74,7 @@ def create_dataset(name: str, max_pics: int, delete: bool = False):
     camera = cv2.VideoCapture(0)
 
     # variable initialization
-    PRINT_STEP = 100
+    PRINT_STEP = max_pics // 12
     DELAY_MS = 30
     name_counter = 0 
     counter = 0
