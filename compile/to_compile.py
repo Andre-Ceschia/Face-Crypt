@@ -149,6 +149,10 @@ if __name__ == '__main__':
     else: 
         slash = '/'
 
+    # If outpath does not exist then outpath is the path of the executable
+    if not os.path.isdir(outpath):
+        outpath = '.'
+
     clear(True)
 
     while True:
