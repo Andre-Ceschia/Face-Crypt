@@ -189,7 +189,7 @@ if __name__ == '__main__':
             # calling the update function
             update(key, outpath, profile, name, slash)
 
-            print(f'\nEncryption {Fore.RED} Sucessful{Fore.GREEN}.')
+            print(f'\nEncryption{Fore.RED} Sucessful{Fore.GREEN}.')
 
         elif user_input == 'purge':
             validation = input('\nAre you sure you want to purge? (Y/N): ').strip().lower()
